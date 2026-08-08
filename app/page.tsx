@@ -380,7 +380,7 @@ export default function Home() {
 
         <footer>
           <span>数据源：生命科学学部_v3.xlsx · {manifest?.fullRecordCount ?? "—"}条有效记录 · 更新于{manifest?.sourceLastModified.slice(0, 10) ?? "—"}</span>
-          <span>Cloudflare Web Analytics 接入位已预留，本地预览不发送统计数据</span>
+          <span>公开访问 · 数据持续核验与更新</span>
         </footer>
       </div>
 

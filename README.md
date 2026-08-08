@@ -91,6 +91,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
+- `npm run build:pages`: generate the static GitHub Pages site in `docs/`
 - `npm run deploy:cloudflare`: build and deploy the site to Cloudflare Workers
 - `npm test`: build the starter and verify its rendered loading skeleton
 - `npm run db:generate`: generate Drizzle migrations after schema changes
@@ -106,6 +107,15 @@ Cloudflare Web Analytics is already wired into the page layout. Set
 `NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN` before the production build to enable
 the beacon. Worker request totals remain available in the Cloudflare dashboard
 after deployment even when this optional token is not set.
+
+## GitHub Pages
+
+The public site is built into `docs/` and published from the `main` branch at:
+
+<https://jqzhang971127-glitch.github.io/nsfc-life-science-fellows/>
+
+Run `npm run build:pages` after changing the interface or data, then commit the
+updated `docs/` directory together with the source change.
 
 ## Learn More
 
