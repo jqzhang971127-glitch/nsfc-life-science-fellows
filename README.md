@@ -91,8 +91,21 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - `npm run dev`: start local development
 - `npm run build`: verify the vinext build output
+- `npm run deploy:cloudflare`: build and deploy the site to Cloudflare Workers
 - `npm test`: build the starter and verify its rendered loading skeleton
 - `npm run db:generate`: generate Drizzle migrations after schema changes
+
+## Cloudflare deployment
+
+The Cloudflare Worker name is fixed to `nsfc-life-science-fellows`. After
+authorizing Wrangler once with `wrangler login`, run `npm run
+deploy:cloudflare` to publish the current site and receive its `workers.dev`
+address.
+
+Cloudflare Web Analytics is already wired into the page layout. Set
+`NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN` before the production build to enable
+the beacon. Worker request totals remain available in the Cloudflare dashboard
+after deployment even when this optional token is not set.
 
 ## Learn More
 
