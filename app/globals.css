@@ -117,7 +117,7 @@ td small { display: block; margin-top: 5px; color: var(--muted); line-height: 1.
 .nameButton:hover { color: var(--accent-ink); }
 .yearBadge, .codeBadge, .statusBadge, .confidence { display: inline-flex; align-items: center; width: fit-content; border-radius: 999px; font-size: 11.5px; font-weight: 750; white-space: nowrap; }
 .yearBadge { padding: 3px 9px; background: var(--accent-soft); color: var(--accent-ink); }
-.codeBadge { padding: 3px 9px; background: var(--chip); color: #554f47; }
+.codeBadge { max-width: 190px; padding: 3px 9px; background: var(--chip); color: #554f47; line-height: 1.35; white-space: normal; }
 .codeBadge.isC08 { background: #f3d8cf; color: #873b22; }
 .statusBadge { padding: 3px 9px; }
 .statusBadge.verified { background: var(--green-soft); color: var(--green); }

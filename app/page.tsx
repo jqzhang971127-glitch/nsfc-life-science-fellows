@@ -40,6 +40,34 @@ type FellowsDatabase = {
 const ALL = "全部";
 const PAGE_SIZE = 30;
 const EMPTY_RECORDS: RecordItem[] = [];
+const CODE_NAMES: Record<string, string> = {
+  C01: "微生物学",
+  C02: "植物学",
+  C03: "生态学",
+  C04: "动物学",
+  C05: "生物物理与生物化学",
+  C06: "遗传学与生物信息学",
+  C07: "细胞生物学",
+  C08: "免疫学",
+  C09: "神经科学与心理学",
+  C10: "生物材料、成像与组织工程学",
+  C11: "生理学与整合生物学",
+  C12: "发育生物学与生殖生物学",
+  C13: "农学基础与作物学",
+  C14: "植物保护学",
+  C15: "园艺学与植物营养学",
+  C16: "林学",
+  C17: "畜牧学",
+  C18: "兽医学",
+  C19: "水产学",
+  C20: "食品科学",
+  C21: "分子生物学与生物技术",
+  C22: "草学",
+};
+
+function formatCode(code: string) {
+  return CODE_NAMES[code] ? `${code} ${CODE_NAMES[code]}` : code;
+}
 
 function confidenceClass(value: string) {
   if (value === "高") return "high";
@@ -219,7 +247,7 @@ export default function Home() {
               <span>② 现行一级代码</span>
               <select value={draftCode} onChange={(event) => setDraftCode(event.target.value)}>
                 <option>{ALL}</option>
-                {codes.map((code) => <option key={code}>{code}</option>)}
+                {codes.map((code) => <option key={code} value={code}>{formatCode(code)}</option>)}
               </select>
             </label>
             <label className="field">
@@ -251,7 +279,7 @@ export default function Home() {
         <section className="resultSummary" aria-live="polite">
           <div>{database ? <>当前匹配 <b>{filtered.length}</b> 条记录，其中 <b>{verifiedVisible}</b> 条已核验</> : <>正在载入全库数据…</>}</div>
           <div className="summaryChips">
-            {filters.code !== ALL && <span>{filters.code}</span>}
+            {filters.code !== ALL && <span>{formatCode(filters.code)}</span>}
             {filters.year !== ALL && <span>{filters.year}年</span>}
             {filters.status !== ALL && <span>{filters.status}</span>}
             {filters.search && <span>“{filters.search}”</span>}
@@ -300,8 +328,7 @@ export default function Home() {
                       </td>
                       <td><span className="yearBadge">{item.awardYear}</span></td>
                       <td>
-                        <span className={`codeBadge ${item.currentCode === "C08" ? "isC08" : ""}`}>{item.currentCode}</span>
-                        <small>{item.currentCategory || "分类名称待补充"}</small>
+                        <span className={`codeBadge ${item.currentCode === "C08" ? "isC08" : ""}`}>{formatCode(item.currentCode)}</span>
                       </td>
                       <td>
                         <b className="institution">{item.institution}</b>
@@ -362,7 +389,7 @@ export default function Home() {
           <article className="detailModal" role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={(event) => event.stopPropagation()}>
             <button className="closeButton" onClick={() => setSelected(null)} aria-label="关闭档案">×</button>
             <div className="detailHeader">
-              <span className="kicker">{selected.currentCode} · {selected.currentCategory || "现行分类"}</span>
+              <span className="kicker">{formatCode(selected.currentCode)}</span>
               <h2 id="detail-title">{selected.name}</h2>
               <p>{selected.institution}</p>
               <div className="detailBadges">
@@ -375,7 +402,7 @@ export default function Home() {
             <dl className="detailGrid">
               <div><dt>科学部编号</dt><dd>{selected.scientificDepartmentNumber || "待补充"}</dd></div>
               <div><dt>原所属学科</dt><dd>{selected.historicalDiscipline || "待补充"}</dd></div>
-              <div><dt>现行一级代码</dt><dd>{selected.currentCode}</dd></div>
+              <div><dt>现行一级代码</dt><dd>{formatCode(selected.currentCode)}</dd></div>
               <div><dt>研究方向</dt><dd>{selected.researchDirection || "待补充"}</dd></div>
             </dl>
 
