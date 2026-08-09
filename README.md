@@ -1,8 +1,8 @@
-# vinext-starter
+# nsfc-life-science-fellows
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+A searchable public database website built with
+[vinext](https://github.com/cloudflare/vinext) and deployed through GitHub Pages
+and Cloudflare Workers.
 
 ## Prerequisites
 
