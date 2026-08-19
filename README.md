@@ -1,123 +1,39 @@
 # nsfc-life-science-fellows
 
-A searchable public database website built with
-[vinext](https://github.com/cloudflare/vinext) and deployed through GitHub Pages
-and Cloudflare Workers.
+国家自然科学基金生命科学部、医学科学部、信息科学部杰青及青年科学基金项目（A类）档案与申请代码数据库。
 
-## Prerequisites
+公开网站：<https://jqzhang971127-glitch.github.io/nsfc-life-science-fellows/>
 
-- Node.js `>=22.13.0`
+## 数据范围
 
-## Quick Start
+- 生命科学部：`生命科学学部_v3.xlsx`
+- 医学科学部：`医学科学部_v2.xlsx`
+- 信息科学部：`信息科学学部v1.xlsx`
+- 历史项目按照2026年现行一级申请代码重新判断，并保留原所属学科、判断理由和核验来源。
+- 无有效本学部代码的源记录不会删除，在网站中显示为“待归属”或“归属异常”。
+
+## 更新数据
+
+项目使用 `scripts/export_fellows_data.py` 从三份Excel完整生成：
+
+- `public/data/departments.json`
+- `public/data/life.json`
+- `public/data/medical.json`
+- `public/data/information.json`
+
+数据文件应由脚本重新生成，不直接手工编辑JSON。
+
+## 本地开发与检查
 
 ```bash
 npm install
-npm run dev
 npm run build
+npm test
+npm run build:pages
 ```
 
-This starter does not use `wrangler.jsonc`.
+## 发布
 
-## Included Shape
+网站仅通过GitHub Pages公开发布，静态文件生成到 `docs/` 并随 `main` 分支提交。
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Email and name are intended for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
-```
-
-## Optional Dispatch-Owned ChatGPT Sign-In
-
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
-
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm run build:pages`: generate the static GitHub Pages site in `docs/`
-- `npm run deploy:cloudflare`: build and deploy the site to Cloudflare Workers
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Cloudflare deployment
-
-The Cloudflare Worker name is fixed to `nsfc-life-science-fellows`. After
-authorizing Wrangler once with `wrangler login`, run `npm run
-deploy:cloudflare` to publish the current site and receive its `workers.dev`
-address.
-
-Cloudflare Web Analytics is already wired into the page layout. Set
-`NEXT_PUBLIC_CLOUDFLARE_ANALYTICS_TOKEN` before the production build to enable
-the beacon. Worker request totals remain available in the Cloudflare dashboard
-after deployment even when this optional token is not set.
-
-## GitHub Pages
-
-The public site is built into `docs/` and published from the `main` branch at:
-
-<https://jqzhang971127-glitch.github.io/nsfc-life-science-fellows/>
-
-Run `npm run build:pages` after changing the interface or data, then commit the
-updated `docs/` directory together with the source change.
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Cloudflare仅用于Web Analytics流量统计。本项目不发布Cloudflare Worker副本，也不维护第三个公网地址。
