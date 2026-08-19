@@ -91,6 +91,12 @@ type Filters = {
   code: string;
   year: string;
   status: string;
+  institution: string;
+  discipline: string;
+  confidence: string;
+  sourceType: string;
+  direction: string;
+  sort: string;
 };
 
 const ALL = "全部";
@@ -99,7 +105,26 @@ const PAGE_SIZE = 30;
 const EMPTY_RECORDS: RecordItem[] = [];
 const EMPTY_CODE_NAMES: Record<string, string> = {};
 const VALID_DEPARTMENTS = new Set<DepartmentId>(["life", "medical", "information"]);
-const EMPTY_FILTERS: Filters = { search: "", code: ALL, year: ALL, status: ALL };
+const EMPTY_FILTERS: Filters = {
+  search: "",
+  code: ALL,
+  year: ALL,
+  status: ALL,
+  institution: "",
+  discipline: ALL,
+  confidence: ALL,
+  sourceType: ALL,
+  direction: "",
+  sort: "yearDesc",
+};
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  const keyword = query.trim();
+  if (!keyword || !text) return <>{text}</>;
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  return <>{parts.map((part, index) => index % 2 ? <mark key={`${part}-${index}`}>{part}</mark> : part)}</>;
+}
 
 function formatCode(code: string, codeNames: Record<string, string>) {
   if (!code) return "待归属";
@@ -143,6 +168,17 @@ function sourceType(url: string) {
   }
 }
 
+function sourceCategory(url: string) {
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "nsfc.gov.cn" || host.endsWith(".nsfc.gov.cn")) return "nsfc";
+    if (host.endsWith(".edu.cn") || host.endsWith(".cas.cn") || host.endsWith(".ac.cn")) return "institution";
+    return "other";
+  } catch {
+    return "other";
+  }
+}
+
 function verificationLabel(item: RecordItem) {
   return item.verificationState === "verified" ? "已核验" : "待核验";
 }
@@ -164,6 +200,12 @@ export default function Home() {
   const [draftCode, setDraftCode] = useState(ALL);
   const [draftYear, setDraftYear] = useState(ALL);
   const [draftStatus, setDraftStatus] = useState(ALL);
+  const [draftInstitution, setDraftInstitution] = useState("");
+  const [draftDiscipline, setDraftDiscipline] = useState(ALL);
+  const [draftConfidence, setDraftConfidence] = useState(ALL);
+  const [draftSourceType, setDraftSourceType] = useState(ALL);
+  const [draftDirection, setDraftDirection] = useState("");
+  const [draftSort, setDraftSort] = useState("yearDesc");
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<RecordItem | null>(null);
   const [showMethod, setShowMethod] = useState(false);
@@ -202,6 +244,12 @@ export default function Home() {
       setDraftCode(ALL);
       setDraftYear(ALL);
       setDraftStatus(ALL);
+      setDraftInstitution("");
+      setDraftDiscipline(ALL);
+      setDraftConfidence(ALL);
+      setDraftSourceType(ALL);
+      setDraftDirection("");
+      setDraftSort("yearDesc");
       setFilters(EMPTY_FILTERS);
       setSelected(null);
       setPage(1);
@@ -237,10 +285,22 @@ export default function Home() {
     () => [...new Set(records.map((item) => item.awardYear))].sort((a, b) => b - a),
     [records],
   );
+  const institutions = useMemo(
+    () => [...new Set(records.map((item) => item.institution).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN")),
+    [records],
+  );
+  const disciplines = useMemo(
+    () => [...new Set(records.map((item) => item.historicalDiscipline).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN")),
+    [records],
+  );
+  const confidenceLevels = useMemo(
+    () => [...new Set(records.map((item) => item.confidence).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN")),
+    [records],
+  );
 
   const filtered = useMemo(() => {
     const query = filters.search.trim().toLocaleLowerCase("zh-CN");
-    return records.filter((item) => {
+    const matches = records.filter((item) => {
       const haystack = [item.name, item.institution, item.scientificDepartmentNumber, item.historicalDiscipline, item.currentCategory, item.researchDirection, item.rawVerificationStatus]
         .join(" ")
         .toLocaleLowerCase("zh-CN");
@@ -251,7 +311,22 @@ export default function Home() {
         (filters.status === "待核验" && item.verificationState === "pending") ||
         (filters.status === "待归属" && item.classificationState === "unassigned") ||
         (filters.status === "归属异常" && item.classificationState === "mismatch");
-      return (!query || haystack.includes(query)) && codeMatches && (filters.year === ALL || String(item.awardYear) === filters.year) && statusMatches;
+      const institutionMatches = !filters.institution || item.institution.toLocaleLowerCase("zh-CN").includes(filters.institution.toLocaleLowerCase("zh-CN"));
+      const disciplineMatches = filters.discipline === ALL || item.historicalDiscipline === filters.discipline;
+      const confidenceMatches = filters.confidence === ALL || item.confidence === filters.confidence;
+      const directionMatches = !filters.direction || [item.researchDirection, item.currentCategory]
+        .join(" ")
+        .toLocaleLowerCase("zh-CN")
+        .includes(filters.direction.toLocaleLowerCase("zh-CN"));
+      const sourceCategories = new Set(uniqueSourceUrls(item).map(sourceCategory));
+      const sourceMatches = filters.sourceType === ALL || sourceCategories.has(filters.sourceType);
+      return (!query || haystack.includes(query)) && codeMatches && (filters.year === ALL || String(item.awardYear) === filters.year) && statusMatches && institutionMatches && disciplineMatches && confidenceMatches && directionMatches && sourceMatches;
+    });
+    return matches.sort((a, b) => {
+      if (filters.sort === "yearAsc") return a.awardYear - b.awardYear || a.name.localeCompare(b.name, "zh-CN");
+      if (filters.sort === "name") return a.name.localeCompare(b.name, "zh-CN") || b.awardYear - a.awardYear;
+      if (filters.sort === "institution") return a.institution.localeCompare(b.institution, "zh-CN") || b.awardYear - a.awardYear;
+      return b.awardYear - a.awardYear || a.name.localeCompare(b.name, "zh-CN");
     });
   }, [filters, records]);
 
@@ -260,6 +335,12 @@ export default function Home() {
     setDraftCode(ALL);
     setDraftYear(ALL);
     setDraftStatus(ALL);
+    setDraftInstitution("");
+    setDraftDiscipline(ALL);
+    setDraftConfidence(ALL);
+    setDraftSourceType(ALL);
+    setDraftDirection("");
+    setDraftSort("yearDesc");
     setFilters(EMPTY_FILTERS);
     setPage(1);
   }
@@ -291,7 +372,18 @@ export default function Home() {
   }
 
   function applyFilters() {
-    setFilters({ search: draftSearch, code: draftCode, year: draftYear, status: draftStatus });
+    setFilters({
+      search: draftSearch,
+      code: draftCode,
+      year: draftYear,
+      status: draftStatus,
+      institution: draftInstitution,
+      discipline: draftDiscipline,
+      confidence: draftConfidence,
+      sourceType: draftSourceType,
+      direction: draftDirection,
+      sort: draftSort,
+    });
     setPage(1);
   }
 
@@ -301,6 +393,12 @@ export default function Home() {
     setDraftCode(merged.code);
     setDraftYear(merged.year);
     setDraftStatus(merged.status);
+    setDraftInstitution(merged.institution);
+    setDraftDiscipline(merged.discipline);
+    setDraftConfidence(merged.confidence);
+    setDraftSourceType(merged.sourceType);
+    setDraftDirection(merged.direction);
+    setDraftSort(merged.sort);
     setFilters(merged);
     setPage(1);
   }
@@ -311,6 +409,13 @@ export default function Home() {
   const pageStart = (safePage - 1) * PAGE_SIZE;
   const pagedRecords = filtered.slice(pageStart, pageStart + PAGE_SIZE);
   const selectedSources = selected ? uniqueSourceUrls(selected) : [];
+  const sortLabels: Record<string, string> = {
+    yearDesc: "年度：新到旧",
+    yearAsc: "年度：旧到新",
+    name: "姓名排序",
+    institution: "单位排序",
+  };
+  const hasActiveFilters = filters.search || filters.code !== ALL || filters.year !== ALL || filters.status !== ALL || filters.institution || filters.discipline !== ALL || filters.confidence !== ALL || filters.sourceType !== ALL || filters.direction;
 
   return (
     <main className="pageShell" data-department={departmentId ?? "home"}>
@@ -389,12 +494,24 @@ export default function Home() {
                 <label className="field"><span>④ 核验 / 归属状态</span><select value={draftStatus} onChange={(event) => setDraftStatus(event.target.value)}><option>{ALL}</option><option>已核验</option><option>待核验</option>{(manifest?.unassignedRecordCount ?? 0) > 0 && <option>待归属</option>}{(manifest?.mismatchRecordCount ?? 0) > 0 && <option>归属异常</option>}</select></label>
                 <button className="primaryButton" onClick={applyFilters}>查询</button>
               </div>
+              <details className="advancedFilters">
+                <summary><span>更多筛选与排序</span><small>单位 · 原所属学科 · 可信度 · 来源 · 子方向</small></summary>
+                <div className="advancedGrid">
+                  <label className="field"><span>依托单位</span><input list={`${departmentId}-institutions`} value={draftInstitution} onChange={(event) => setDraftInstitution(event.target.value)} onKeyDown={(event) => event.key === "Enter" && applyFilters()} placeholder="输入或选择单位" /><datalist id={`${departmentId}-institutions`}>{institutions.map((institution) => <option key={institution} value={institution} />)}</datalist></label>
+                  <label className="field"><span>原所属学科</span><select value={draftDiscipline} onChange={(event) => setDraftDiscipline(event.target.value)}><option>{ALL}</option>{disciplines.map((discipline) => <option key={discipline}>{discipline}</option>)}</select></label>
+                  <label className="field"><span>可信度</span><select value={draftConfidence} onChange={(event) => setDraftConfidence(event.target.value)}><option>{ALL}</option>{confidenceLevels.map((confidence) => <option key={confidence}>{confidence}</option>)}</select></label>
+                  <label className="field"><span>来源类型</span><select value={draftSourceType} onChange={(event) => setDraftSourceType(event.target.value)}><option>{ALL}</option><option value="nsfc">含基金委官网来源</option><option value="institution">含依托单位 / 科研机构来源</option><option value="other">含其他来源</option></select></label>
+                  <label className="field"><span>二级 / 子方向关键词</span><input value={draftDirection} onChange={(event) => setDraftDirection(event.target.value)} onKeyDown={(event) => event.key === "Enter" && applyFilters()} placeholder="例如：单细胞、机器学习" /></label>
+                  <label className="field"><span>结果排序</span><select value={draftSort} onChange={(event) => setDraftSort(event.target.value)}><option value="yearDesc">年度：新到旧</option><option value="yearAsc">年度：旧到新</option><option value="name">姓名：拼音顺序</option><option value="institution">单位：名称顺序</option></select></label>
+                  <button className="advancedApply" onClick={applyFilters}>应用筛选与排序</button>
+                </div>
+              </details>
               <div className="quickRow"><span>快捷查看</span><button onClick={() => quickFilter({})}>全部记录</button><button onClick={() => quickFilter({ year: "2025" })}>2025年</button><button onClick={() => quickFilter({ status: "已核验" })}>仅已核验</button>{(manifest?.classificationExceptionCount ?? 0) > 0 && <button className="exceptionQuick" onClick={() => quickFilter({ code: UNASSIGNED })}>待归属 / 归属异常</button>}</div>
             </section>
 
             <section className="resultSummary" aria-live="polite">
               <div>{database ? <>当前匹配 <b>{filtered.length}</b> 条记录，其中 <b>{verifiedVisible}</b> 条身份已核验</> : <>正在载入{selectedSummary?.departmentName ?? "学部"}数据…</>}</div>
-              <div className="summaryChips">{filters.code !== ALL && <span>{filters.code === UNASSIGNED ? "待归属 / 归属异常" : formatCode(filters.code, codeNames)}</span>}{filters.year !== ALL && <span>{filters.year}年</span>}{filters.status !== ALL && <span>{filters.status}</span>}{filters.search && <span>“{filters.search}”</span>}{!filters.search && filters.code === ALL && filters.year === ALL && filters.status === ALL && <span>全部记录</span>}</div>
+              <div className="summaryChips">{filters.code !== ALL && <span>{filters.code === UNASSIGNED ? "待归属 / 归属异常" : formatCode(filters.code, codeNames)}</span>}{filters.year !== ALL && <span>{filters.year}年</span>}{filters.status !== ALL && <span>{filters.status}</span>}{filters.institution && <span>单位：{filters.institution}</span>}{filters.discipline !== ALL && <span>原学科：{filters.discipline}</span>}{filters.confidence !== ALL && <span>可信度：{filters.confidence}</span>}{filters.sourceType !== ALL && <span>{filters.sourceType === "nsfc" ? "基金委来源" : filters.sourceType === "institution" ? "单位 / 机构来源" : "其他来源"}</span>}{filters.direction && <span>子方向：{filters.direction}</span>}{filters.search && <span>“{filters.search}”</span>}{filters.sort !== "yearDesc" && <span>{sortLabels[filters.sort]}</span>}{!hasActiveFilters && <span>全部记录</span>}</div>
             </section>
 
             <section className="resultsCard">
@@ -404,17 +521,27 @@ export default function Home() {
               ) : !database ? (
                 <div className="loadingState" aria-live="polite"><span />正在载入当前学部全库数据…</div>
               ) : filtered.length ? (
-                <div className="tableWrap"><table><thead><tr><th>申请人</th><th>获批年度</th><th>现行代码 / 归属</th><th>依托单位 / 原所属学科</th><th>研究方向</th><th>核验</th><th aria-label="查看档案" /></tr></thead><tbody>{pagedRecords.map((item) => (
-                  <tr key={item.id} className={item.classificationState !== "classified" ? "exceptionRow" : ""}>
-                    <td><button className="nameButton" onClick={() => setSelected(item)}>{item.name}</button><small>{item.scientificDepartmentNumber || `源表第${item.rowNumber}行`}</small></td>
-                    <td><span className="yearBadge">{item.awardYear}</span></td>
-                    <td>{item.classificationState === "classified" ? <span className="codeBadge">{formatCode(item.currentCode, codeNames)}</span> : <span className={`classificationBadge ${item.classificationState}`}>{classificationLabel(item.classificationState)}</span>}{item.classificationState !== "classified" && <small>{item.rawVerificationStatus || "现行代码待判断"}</small>}</td>
-                    <td><b className="institution">{item.institution}</b><small>{item.historicalDiscipline || "原所属学科待补充"}</small></td>
-                    <td className="direction">{item.researchDirection || <span className="muted">待补充</span>}</td>
-                    <td><span className={`statusBadge ${item.verificationState}`}>{verificationLabel(item)}</span><span className={`confidence ${confidenceClass(item.confidence)}`}>{item.confidence || "未评级"}</span></td>
-                    <td><button className="detailButton" onClick={() => setSelected(item)} aria-label={`查看${item.name}完整档案`}>查看档案 →</button></td>
-                  </tr>
-                ))}</tbody></table></div>
+                <>
+                  <div className="tableWrap desktopResults"><table><thead><tr><th>申请人</th><th>获批年度</th><th>现行代码 / 归属</th><th>依托单位 / 原所属学科</th><th>研究方向</th><th>核验</th><th aria-label="查看档案" /></tr></thead><tbody>{pagedRecords.map((item) => (
+                    <tr key={item.id} className={item.classificationState !== "classified" ? "exceptionRow" : ""}>
+                      <td><button className="nameButton" onClick={() => setSelected(item)}><HighlightedText text={item.name} query={filters.search} /></button><small><HighlightedText text={item.scientificDepartmentNumber || `源表第${item.rowNumber}行`} query={filters.search} /></small></td>
+                      <td><span className="yearBadge">{item.awardYear}</span></td>
+                      <td>{item.classificationState === "classified" ? <span className="codeBadge">{formatCode(item.currentCode, codeNames)}</span> : <span className={`classificationBadge ${item.classificationState}`}>{classificationLabel(item.classificationState)}</span>}{item.classificationState !== "classified" && <small>{item.rawVerificationStatus || "现行代码待判断"}</small>}</td>
+                      <td><b className="institution"><HighlightedText text={item.institution} query={filters.search} /></b><small><HighlightedText text={item.historicalDiscipline || "原所属学科待补充"} query={filters.search} /></small></td>
+                      <td className="direction">{item.researchDirection ? <HighlightedText text={item.researchDirection} query={filters.search || filters.direction} /> : <span className="muted">待补充</span>}</td>
+                      <td><span className={`statusBadge ${item.verificationState}`}>{verificationLabel(item)}</span><span className={`confidence ${confidenceClass(item.confidence)}`}>{item.confidence || "未评级"}</span></td>
+                      <td><button className="detailButton" onClick={() => setSelected(item)} aria-label={`查看${item.name}完整档案`}>查看档案 →</button></td>
+                    </tr>
+                  ))}</tbody></table></div>
+                  <div className="mobileResults" aria-label="手机端检索结果">{pagedRecords.map((item) => (
+                    <article key={item.id} className={`mobilePersonCard ${item.classificationState !== "classified" ? "exceptionCard" : ""}`}>
+                      <header className="mobileCardHeader"><div><button className="mobileNameButton" onClick={() => setSelected(item)}><HighlightedText text={item.name} query={filters.search} /></button><small>{item.scientificDepartmentNumber || `源表第${item.rowNumber}行`}</small></div><span className="yearBadge">{item.awardYear}</span></header>
+                      <div className="mobileCodeRow">{item.classificationState === "classified" ? <span className="codeBadge">{formatCode(item.currentCode, codeNames)}</span> : <span className={`classificationBadge ${item.classificationState}`}>{classificationLabel(item.classificationState)}</span>}</div>
+                      <div className="mobileCardBody"><div><span>依托单位</span><b><HighlightedText text={item.institution} query={filters.search} /></b></div><div><span>原所属学科</span><p><HighlightedText text={item.historicalDiscipline || "待补充"} query={filters.search} /></p></div><div><span>研究方向</span><p>{item.researchDirection ? <HighlightedText text={item.researchDirection} query={filters.search || filters.direction} /> : "待补充"}</p></div></div>
+                      <div className="mobileCardFooter"><div className="mobileStatusRow"><span className={`statusBadge ${item.verificationState}`}>{verificationLabel(item)}</span>{item.classificationState !== "classified" && <span className={`classificationBadge ${item.classificationState}`}>{classificationLabel(item.classificationState)}</span>}<span className={`confidence ${confidenceClass(item.confidence)}`}>{item.confidence || "未评级"}</span></div><button className="mobileDetailButton" onClick={() => setSelected(item)}>查看档案 <span>→</span></button></div>
+                    </article>
+                  ))}</div>
+                </>
               ) : (
                 <div className="emptyState"><span>⌕</span><h3>没有匹配的记录</h3><p>可以清空关键词，或使用“全部记录”恢复默认范围。</p><button onClick={resetFilters}>查看全部记录</button></div>
               )}

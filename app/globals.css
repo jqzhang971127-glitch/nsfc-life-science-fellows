@@ -141,6 +141,12 @@ h1 { margin: 16px 0 8px; font-size: clamp(30px, 4vw, 42px); line-height: 1.18; l
 }
 .field input::placeholder { color: #a9a296; }
 .field input:focus, .field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.advancedFilters { margin-top: 16px; border-top: 1px solid #eee7dc; padding-top: 14px; }
+.advancedFilters summary { display: flex; align-items: center; gap: 10px; width: fit-content; color: var(--accent-ink); font-size: 12.5px; font-weight: 800; cursor: pointer; list-style-position: outside; }
+.advancedFilters summary small { color: var(--muted); font-size: 11.5px; font-weight: 600; }
+.advancedGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; border-radius: 14px; background: #f4efe7; padding: 16px; }
+.advancedApply { grid-column: 1 / -1; justify-self: end; border: 1px solid #d8c8bb; border-radius: 10px; background: var(--paper); color: var(--accent-ink); padding: 8px 14px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+.advancedApply:hover { border-color: var(--accent); background: var(--accent-soft); }
 .primaryButton {
   min-height: 46px;
   border: 0;
@@ -169,6 +175,7 @@ h1 { margin: 16px 0 8px; font-size: clamp(30px, 4vw, 42px); line-height: 1.18; l
 .cardHeading h2, .methodStrip h2 { margin: 2px 0 0; font-size: 21px; }
 .demoBadge { border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); padding: 5px 11px; font-size: 12px; font-weight: 700; }
 .tableWrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+.mobileResults { display: none; }
 table { width: 100%; min-width: 1040px; border-collapse: collapse; font-size: 13.5px; }
 thead th { position: sticky; top: 0; padding: 12px 13px; border-bottom: 1px solid var(--line); background: #f0eae0; color: #5c574e; text-align: left; font-weight: 750; white-space: nowrap; }
 tbody td { max-width: 240px; padding: 14px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -199,6 +206,22 @@ td small { display: block; margin-top: 5px; color: var(--muted); line-height: 1.
 .muted { color: #a19a8f; }
 .detailButton { border: 0; padding: 5px 0; background: transparent; color: var(--accent); font-size: 12.5px; font-weight: 750; cursor: pointer; white-space: nowrap; }
 .detailButton:hover { text-decoration: underline; }
+mark { border-radius: 3px; background: #f4dca2; color: inherit; padding: 0 1px; }
+.mobilePersonCard { overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: #fffdf9; box-shadow: 0 3px 12px rgba(31, 30, 28, 0.05); }
+.mobilePersonCard.exceptionCard { border-color: #e4c99e; background: #fdf8ef; }
+.mobileCardHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 16px 10px; }
+.mobileCardHeader small { display: block; margin-top: 3px; color: var(--muted); font-size: 11.5px; }
+.mobileNameButton { border: 0; background: transparent; padding: 0; color: var(--ink); font-size: 18px; font-weight: 850; text-align: left; cursor: pointer; }
+.mobileCodeRow { padding: 0 16px 13px; }
+.mobileCodeRow .codeBadge { max-width: 100%; }
+.mobileCardBody { display: grid; gap: 10px; border-top: 1px solid var(--line); padding: 13px 16px; }
+.mobileCardBody > div { display: grid; grid-template-columns: 82px 1fr; gap: 10px; align-items: start; }
+.mobileCardBody span { color: var(--muted); font-size: 11.5px; font-weight: 700; }
+.mobileCardBody b, .mobileCardBody p { margin: 0; color: #46413b; font-size: 13px; line-height: 1.5; }
+.mobileCardFooter { display: grid; gap: 12px; border-top: 1px solid var(--line); padding: 13px 16px 16px; }
+.mobileStatusRow { display: flex; flex-wrap: wrap; gap: 6px; }
+.mobileStatusRow .confidence { margin-top: 0; }
+.mobileDetailButton { display: flex; align-items: center; justify-content: space-between; width: 100%; border: 0; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); padding: 10px 12px; font-size: 13px; font-weight: 800; cursor: pointer; }
 .pagination { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-top: 16px; color: var(--muted); font-size: 12.5px; }
 .pagination > div:first-child { display: flex; gap: 10px; align-items: center; }
 .pagination b { color: var(--ink); }
@@ -252,6 +275,7 @@ footer { display: flex; justify-content: space-between; gap: 22px; padding: 24px
   .controls { grid-template-columns: 1.2fr repeat(2, 0.7fr); }
   .controls .field:nth-of-type(4) { grid-column: 1 / 2; }
   .primaryButton { grid-column: 2 / 4; }
+  .advancedGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .methodStrip { grid-template-columns: 1fr; }
   .methodStrip button { width: fit-content; }
 }
@@ -265,10 +289,15 @@ footer { display: flex; justify-content: space-between; gap: 22px; padding: 24px
   .controls { grid-template-columns: 1fr; }
   .controls .field:nth-of-type(4), .primaryButton { grid-column: auto; }
   .primaryButton { width: 100%; }
+  .advancedFilters summary { align-items: flex-start; flex-direction: column; gap: 2px; }
+  .advancedGrid { grid-template-columns: 1fr; margin-inline: -2px; padding: 14px; }
+  .advancedApply { justify-self: stretch; min-height: 44px; }
   .searchPanel, .resultsCard { padding: 17px; border-radius: 15px; }
   .cardHeading { align-items: flex-start; flex-direction: column; }
   .summaryChips { justify-content: flex-start; }
   .pagination { align-items: flex-start; flex-direction: column; }
+  .desktopResults { display: none; }
+  .mobileResults { display: grid; gap: 12px; }
   .detailModal { padding: 24px 19px; }
   .detailGrid { grid-template-columns: 1fr; }
   .detailHeader h2, .methodModal > h2 { font-size: 25px; }

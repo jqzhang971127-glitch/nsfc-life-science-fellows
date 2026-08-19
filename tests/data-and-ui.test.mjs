@@ -80,6 +80,13 @@ test("site source starts with department cards and contains no fixed C08 shortcu
   assert.match(page, /selectedSummary\.dataFile/);
   assert.match(page, /searchParams\.get\("department"\)/);
   assert.match(page, /待归属 \/ 归属异常/);
+  assert.match(page, /className="mobileResults"/);
+  assert.match(page, /mobilePersonCard/);
+  assert.match(page, /更多筛选与排序/);
+  assert.match(page, /依托单位 \/ 科研机构来源/);
+  assert.match(page, /二级 \/ 子方向关键词/);
+  assert.match(page, /function HighlightedText/);
+  assert.match(page, /filters\.sort === "institution"/);
   assert.doesNotMatch(page, /C08 免疫学/);
   assert.match(html, /国家自然科学基金杰青档案与申请代码数据库/);
   assert.match(html, /static\.cloudflareinsights\.com\/beacon\.min\.js/);
